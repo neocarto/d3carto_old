@@ -1,10 +1,10 @@
 
-<script src="js/d3.v3.min.js"></script>
-<script src="js/topojson.v1.min.js"></script>
-<script src="js/queue.v1.min.js"></script>
-<script src="js/geostats.min.js"></script>
-<script src="js/tooltip.js"></script>
-<link rel="stylesheet" type="text/css" href="css/colorbrewer.css">        
+<script src="../js/d3.v3.min.js"></script>
+<script src="../js/topojson.v1.min.js"></script>
+<script src="../js/queue.v1.min.js"></script>
+<script src="../js/geostats.min.js"></script>
+<script src="../js/tooltip.js"></script>
+<link rel="stylesheet" type="text/css" href="../css/colorbrewer.css">        
 
 <style> 
     .graticule { fill: none; stroke: #777; stroke-width: 1px;  stroke-opacity: .5; }
@@ -58,8 +58,8 @@ svg.append("g").attr("id","latlong").append("path").datum(graticule)
     .attr("d", path);
  
     queue()
-    .defer(d3.json, "database/geom/shp/world.topojson")
-    .defer(d3.tsv, "database/data/gdppop.tsv", function(d) { rateById.set(d.id, +d.GDPPERINH);  })
+    .defer(d3.json, "../database/geom/shp/world.topojson")
+    .defer(d3.tsv, "../database/data/gdppop.tsv", function(d) { rateById.set(d.id, +d.GDPPERINH);  })
     .await(ready);
 
 function ready(error, world) {
