@@ -1,0 +1,158 @@
+
+<script src="js/d3.v3.min.js"></script>
+<script src="js/topojson.v1.min.js"></script>
+<script src="js/queue.v1.min.js"></script>
+<script src="js/geostats.min.js"></script>
+<script src="js/tooltip.js"></script>
+<link rel="stylesheet" type="text/css" href="css/colorbrewer.css">        
+
+<style> 
+    .graticule { fill: none; stroke: #777; stroke-width: 1px;  stroke-opacity: .5; }
+    .countries { stroke : #494b41 ; stroke-width: 0.5px; stroke-linecap: round ; fill: #FFFFFF}
+}
+
+</style>
+
+
+<body>
+
+<div id = "map"></div>
+</body>
+
+<script>
+
+    
+    
+    
+// Parametres modifiables
+var nclass = 5;
+var palette = "Reds";   
+    
+// Variables d'affichage    
+var width = 1000,
+    height = 1000;
+    
+    
+var rateById = d3.map();
+
+var svg = d3.select("#map").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+    
+
+var sc = Math.min(width,height) * 0.5
+var lat = 0
+var projection = d3.geo.orthographic()
+    .scale(sc)
+    .translate([width/2,height/2])
+    .rotate([lat,0])
+    .clipAngle(90);
+    
+var path = d3.geo.path()
+    .projection(projection);
+
+var graticule = d3.geo.graticule();    
+svg.append("g").attr("id","latlong").append("path").datum(graticule)
+    .attr("class", "graticule")
+    .attr("d", path);
+ 
+    queue()
+    .defer(d3.json, "database/geom/shp/world.topojson")
+    .defer(d3.tsv, "database/data/gdppop.tsv", function(d) { rateById.set(d.id, +d.GDPPERINH);  })
+    .await(ready);
+
+function ready(error, world) {
+  if (error) throw error;
+      
+    // discretisation
+    var serie = new geostats(rateById.values());
+    breaks = (serie.getQuantile(nclass));
+    b = (serie.getQuantile(nclass));
+    b.splice(nclass,1);
+    b.splice(0,1); 
+
+    console.log(breaks);
+    console.log(b);
+    
+    //console.log(serie);
+    var quantize = d3.scale.threshold()
+    .domain(b)
+    .range(d3.range(nclass).map(function(i) { return "q" + i + "-" + nclass; }));
+    console.log(nclass);
+    
+    
+    // Couche choroplethe
+    svg.append("g").attr("id","countries").attr("class",palette + " countries")
+    .selectAll(".subunit")
+    .data(topojson.feature(world, world.objects.world).features)
+    .enter().append("path")
+    .attr("class", function(d) { return quantize(rateById.get(d.id)) + " country"; })
+    
+    .attr("id", function(d) { return d.id; })
+    //.attr("label", function(d) { return rateById.get(d.id); })
+    .attr("d", path)
+    .call(d3.helper.tooltip()
+                .style({color: 'white', border:'1', background: '#000000', padding:'2px' })
+                .text(function(d){ return d.id + ": "+ d3.round(rateById.get(d.id), 2); })
+            )
+            .on('mouseover', function(d){d3.select(this).style({fill: "#509e2f"}); })
+            .on('mouseout', function(d){d3.select(this).transition().duration(250).style("fill", function(d) {d.class});});
+    
+    // Couche de légende
+
+    var legtitle = "PIB par habitant (2014)";
+    var xpos = 0;
+    var ypos = 0;
+    var boxwidth = 25;
+    var boxheight = 20;
+    var boxgap = 20;
+    
+    
+    var legend = d3.select("svg").append("g").attr("id","legend");
+    legend.append("g").attr("id","boxes").attr("class",palette)
+    .selectAll('legendEntry')
+    .data(quantize.range().reverse())
+    .enter()
+    .append('rect')
+    .attr("x", xpos)
+    .attr("y", function(d, i) {
+       return i * boxgap + ypos + boxgap*2;
+    })
+   .attr("width", boxwidth)
+   .attr("height", boxheight)
+   .attr("class", function(d){return d;});
+    
+    legend.append("g").attr("id","boxestextes")
+    .selectAll('legendEntry')
+    .data(breaks.reverse())
+    .enter()
+    .append('text')
+    .attr("x", xpos + boxwidth + boxgap/2)
+    .attr("y", function(d, i) {
+       return i * boxgap + ypos + boxgap*2;
+    })
+    .text(function(d, i) {
+       return breaks[i].toFixed(0);
+    })
+    .style({'alignment-baseline': 'middle' , 'font-size':'10'});
+        
+    legend.append("g").attr("id","legendtitle").append('text').text(legtitle).attr("x", xpos).attr("y", ypos+boxgap);    
+    
+    
+} 
+    setInterval(function(){
+			lat = lat +.5
+			projection.rotate([lat,-40]);
+			svg.selectAll(".graticule")
+				.attr("d", path);
+        			svg.selectAll(".country")
+				.attr("d", path);
+		},1);
+
+
+    
+</script>   
+
+
+
