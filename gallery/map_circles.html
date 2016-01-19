@@ -55,7 +55,7 @@ svg.append("g").attr("id","latlong").append("path").datum(graticule)
     .attr("d", path);
  
     queue()
-    .defer(d3.json, "../database/geom/shp/world.topojson")
+    .defer(d3.json, "../database/geom/topojson/world.topojson")
     .defer(d3.tsv, "../database/data/gdppop.tsv", function(d) { rateById.set(d.id, +d.GDPPERINH); stockById.set(d.id, +d.GDP2014); })
     .await(ready);
 
