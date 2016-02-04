@@ -1,0 +1,144 @@
+<script src="../js/d3.v3.min.js"></script>
+<script src="../js/topojson.v1.min.js"></script>
+<script src="../js/queue.v1.min.js"></script>
+<script src="../js/geostats.min.js"></script>
+<link href="../css/style.css" rel="stylesheet" type="text/css" >  
+
+<style> 
+	.background { fill: #e5ebf7; stroke : none}
+	.coasts {fill:none ; stroke: #3b3b3b; stroke-width: 1px;  stroke-opacity: 1; stroke-dasharray: 3 }
+	.nuts { stroke : #ffffff ; stroke-width: 0.2px; stroke-linecap: round ; fill: #ffffff;  }
+    #bubble { stroke : #ffffff ; stroke-width: 0.7px; stroke-linecap: round ; fill: #826395;  }
+	text.shadow {stroke: white;stroke-width: 3.5px;opacity: 0.7;}
+</style>
+
+<body>
+	<div class="note" id ="note">
+	All sources are available on <a href ="https://github.com/neocarto/d3carto" target="_blank">Github</a>. 
+	Go to the <a href="../index.php">Gallery</a>. 
+	<span class="small">CC (BY) N. Lambert (<a href ="http://neocarto.hypotheses.org/" target ="_blank">neocarto</a>).</span> 
+	</div>
+
+	<div id ="title"><ul><li>
+	A proportionnal Symbols (circles) map with D3.js
+	</li></ul></div>
+    
+	<div id ="abstract">
+	This example shows how to design a bubble map (with absolute values) with D3.
+	</div>
+    
+	<div id = "map"></div>
+</body>
+
+
+<script>
+    
+// ***** Configuration of the map *****
+    
+ var width = 900, height = 798;
+ var stockById = d3.map();
+
+  var svg = d3.select("#map").append("svg")
+      .attr("width", width)
+      .attr("height", height)
+      .attr("class","grad");
+
+ var radialGradient = svg.append("defs").append("radialGradient").attr("id", "radial-gradient");
+ radialGradient.append("stop").attr("offset", "50%").attr("stop-color", "#f3f6fa");
+ radialGradient.append("stop").attr("offset", "100%").attr("stop-color", "#d3e0fa");  
+
+var projection = d3.geo.azimuthalEqualArea()
+    .rotate([-10,-52])
+    .scale(1209)
+    .translate([327, 424]);
+ 
+    
+var path = d3.geo.path()
+    .projection(projection);
+    
+// ***** Structure of the SVG document *****
+    
+var bottomlayer = svg.append("g").attr("id","bottomlayer");
+var dynamiclayer = svg.append("g").attr("id","dynamiclayer");
+var toplayer = svg.append("g").attr("id","toplayer");
+var layout = svg.append("g").attr("id","layout");
+  
+// Files to load    
+    queue()
+    .defer(d3.json, "../database/geom/topojson/layers.topojson")
+    .defer(d3.json, "../database/geom/topojson/nuts2006.topojson")
+    .defer(d3.tsv, "../database/data/data_nuts3_2006.tsv", function(d) { stockById.set(d.id, +d.gdp_2008);  })
+    .await(ready);
+
+function ready(error, layers, nuts) {
+  if (error) throw error;
+
+    
+// ***** Bottom layers *****
+    
+    // background
+    bottomlayer.append("rect")
+        .style("fill", "url(#radial-gradient)")
+        .attr("width", "100%")
+        .attr("height", "100%")
+    
+    // Frames
+    bottomlayer.selectAll(".subunit")
+        .data(topojson.feature(layers, layers.objects.framemalta).features)
+        .enter().append("path").attr("d", path).attr("class", "background")
+    bottomlayer.selectAll(".subunit")
+        .data(topojson.feature(layers, layers.objects.frameremote).features)
+        .enter().append("path").attr("d", path).attr("class", "background")
+    
+    // coastline
+    bottomlayer.selectAll(".subunit")
+        .data(topojson.feature(layers, layers.objects.coasts).features)
+        .enter().append("path").attr("d", path).attr("class", "coasts")
+    
+    
+    
+// ***** Prop symbols layer *****
+
+    var radius = d3.scale.sqrt()
+    .domain([0, 1e6])
+    .range([0, 1.3]);
+    
+    svg.append("g")
+        .attr("id", "bubble")
+        .selectAll("circle")
+        .data(topojson.feature(nuts, nuts.objects.nuts3).features)
+        .sort(function(a, b) { return b.properties.gdp_2008 - a.properties.gdp_2008; })
+        .enter().append("circle")
+        .attr("class", "propsymbol")
+        .attr("transform", function(d) { return "translate(" + path.centroid(d) + ")"; })
+        .attr("r", function(d) { return radius(stockById.get(d.id)); });
+    
+// ***** Other cartographical elements *****
+      
+    // Main title
+    var maptitle ="Gross Domestic Product, 2008";
+    var posx = 10; var posy = 45;
+    layout.append("text").text(maptitle)
+        .attr("x", posx).attr("y", posy)
+        .style({"font-size":"35px", "fill":"#919091","font-family":"arial, tahoma, geneva, sans-serif","font-style":"bold"})
+        .attr("class", "shadow");
+    layout.append("text").text(maptitle)
+        .attr("x", posx).attr("y", posy)
+        .style({"font-size":"35px", "fill":"#4f537e","font-family":"arial, tahoma, geneva, sans-serif","font-style":"bold"})
+    
+    // Source
+    layout.append("text").text("Source: ESPON M4D, 2012 - N. Lambert, 2016")
+        .attr("x", 0+5).attr("y", height-5)
+        .style({"font-size":"12px", "fill":"#919091","font-family":"tahoma, geneva, sans-serif","font-style":"italic"});
+
+    // Logo
+    layout.append("svg:image")
+        .attr('x',773)
+        .attr('y',730)
+        .attr('width', 120)
+        .attr('height', 100)
+        .attr("xlink:href","../img/logo_riate.svg");
+
+    
+} 
+</script>   

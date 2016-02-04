@@ -3,6 +3,8 @@
 $thumb[0] ="map_layers" ; $descr[0]="A 'static' map<br/>of Europe";
 $thumb[1] ="map_choropleth" ; $descr[1]="A chorpleth map<br/>of Europe";
 $thumb[2] ="map_choropleth_interactiv" ; $descr[2]="An interactive chorpleth<br/>map of Europe";
+$thumb[3] ="map_propsymbols" ; $descr[3]="A bubble map<br/>of Europe";
+
 
 
 
