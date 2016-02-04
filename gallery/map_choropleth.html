@@ -1,0 +1,235 @@
+<script src="../js/d3.v3.min.js"></script>
+<script src="../js/topojson.v1.min.js"></script>
+<script src="../js/queue.v1.min.js"></script>
+<script src="../js/geostats.min.js"></script>
+<link href="../css/style.css" rel="stylesheet" type="text/css" >  
+<link rel="stylesheet" type="text/css" href="../css/colorbrewer.css">   
+
+<style> 
+	.graticule {fill:none ; stroke: #777; stroke-width: 1px;  stroke-opacity: .5; stroke-dasharray: 5 }
+	.countries { fill: #e5dfc7 ; stroke-width: 0.4px; stroke : #ffffff}
+	.frame { fill: none; stroke-width: 0.5px; stroke : #383838}
+	.background { fill: #e5ebf7; stroke : none}
+	.coasts { stroke-width: 1.3px; stroke : #6976ba ; fill : none}
+	.nuts { stroke : #ffffff ; stroke-width: 0.2px; stroke-linecap: round ; fill: #ffffff;  }
+	text.shadow {stroke: white;stroke-width: 3.5px;opacity: 0.7;}
+</style>
+
+<body>
+	<div class="note" id ="note">
+	All sources are available on <a href ="https://github.com/neocarto/d3carto" target="_blank">Github</a>. 
+	Go to the <a href="../index.php">Gallery</a>. 
+	<span class="small">CC (BY) N. Lambert (<a href ="http://neocarto.hypotheses.org/" target ="_blank">neocarto</a>).</span> 
+	</div>
+
+	<div id ="title"><ul><li>
+	A choropleth map of Europe with D3.js
+	</li></ul></div>
+    
+	<div id ="abstract">
+	This example shows how to design a relevent choropleth map with D3, geostats and colorbrewer.
+	</div>
+    
+	<div id = "map"></div>
+</body>
+
+
+<script>
+    
+// ***** Configuration of the map *****
+    
+ var width = 900, height = 798;
+ var rateById = d3.map();
+
+  var svg = d3.select("#map").append("svg")
+      .attr("width", width)
+      .attr("height", height)
+      .attr("class","grad");
+
+ var radialGradient = svg.append("defs").append("radialGradient").attr("id", "radial-gradient");
+ radialGradient.append("stop").attr("offset", "50%").attr("stop-color", "#f3f6fa");
+ radialGradient.append("stop").attr("offset", "100%").attr("stop-color", "#d3e0fa");  
+
+var projection = d3.geo.azimuthalEqualArea()
+    .rotate([-10,-52])
+    .scale(1209)
+    .translate([327, 424]);
+ 
+    
+var path = d3.geo.path()
+    .projection(projection);
+
+var graticule = d3.geo.graticule();   
+    
+// Paramas for the classification
+
+var rateById = d3.map();    
+var nclass = 8;
+var palette = "Reds";   
+
+
+// ***** Structure of the SVG document *****
+    
+var bottomlayer = svg.append("g").attr("id","bottomlayer");
+var dynamiclayer = svg.append("g").attr("id","dynamiclayer");
+var toplayer = svg.append("g").attr("id","toplayer");
+var layout = svg.append("g").attr("id","layout");
+  
+// Files to load    
+    queue()
+    .defer(d3.json, "../database/geom/topojson/layers.topojson")
+    .defer(d3.json, "../database/geom/topojson/nuts2006.topojson")
+    .defer(d3.tsv, "../database/data/data_nuts3_2006.tsv", function(d) { rateById.set(d.id, +d.gdppercapita);  })
+    .await(ready);
+
+function ready(error, layers, nuts) {
+  if (error) throw error;
+    
+    
+// ***** Discretization *****
+    
+    var serie = new geostats(rateById.values());
+    breaks = (serie.getQuantile(nclass));
+    b = (serie.getQuantile(nclass));
+    b.splice(nclass,1);
+    b.splice(0,1); 
+    
+    console.log(rateById.values());
+    
+    var quantize = d3.scale.threshold()
+    .domain(b)
+    .range(d3.range(nclass).map(function(i) { return "q" + i + "-" + nclass; }));
+    
+// ***** Bottom layers *****
+    
+    // background
+    bottomlayer.append("rect")
+        .style("fill", "url(#radial-gradient)")
+        .attr("width", "100%")
+        .attr("height", "100%")
+    
+    // graticule
+    bottomlayer.append("path").datum(graticule)
+        .attr("class", "graticule")
+        .attr("d", path);
+    
+    // Frames
+    bottomlayer.selectAll(".subunit")
+        .data(topojson.feature(layers, layers.objects.framemalta).features)
+        .enter().append("path").attr("d", path).attr("class", "background")
+    bottomlayer.selectAll(".subunit")
+        .data(topojson.feature(layers, layers.objects.frameremote).features)
+        .enter().append("path").attr("d", path).attr("class", "background")
+    
+    // Countries
+    bottomlayer.selectAll(".subunit")
+        .data(topojson.feature(layers, layers.objects.countries).features)
+        .enter().append("path").attr("d", path).attr("class", "countries")
+    bottomlayer.selectAll(".subunit")
+        .data(topojson.feature(layers, layers.objects.remoteterritories).features)
+        .enter().append("path").attr("d", path).attr("class", "countries")
+    
+// ***** Choropleth Layer (with colorbrewer colors) *****
+
+    dynamiclayer.attr("class",palette + " nuts")
+        .selectAll(".subunit")
+        .data(topojson.feature(nuts, nuts.objects.nuts3).features)
+        .enter().append("path")
+        .attr("class", function(d) { return quantize(rateById.get(d.id)); })
+        .attr("id", function(d) { return d.id; })
+        .attr("d", path)  
+    
+    
+// ***** Top Layers *****
+     
+    // national borders
+    toplayer
+	   .datum(topojson.mesh(nuts, nuts.objects.nuts0, function(a, b) {return a !== b ;}))
+	   .append("path")
+	   .attr("d", path)
+	   .attr("fill", "none")
+	   .attr('stroke-width', 1.5)
+	   .attr('stroke', '#ffffff');
+    
+    // coastline
+    toplayer.selectAll(".subunit")
+        .data(topojson.feature(layers, layers.objects.coasts).features)
+        .enter().append("path").attr("d", path).attr("class", "coasts")
+    
+    // frames
+    toplayer.selectAll(".subunit")
+        .data(topojson.feature(layers, layers.objects.framemalta).features)
+        .enter().append("path").attr("d", path).attr("class", "frame")
+    toplayer.selectAll(".subunit")
+        .data(topojson.feature(layers, layers.objects.frameremote).features)
+        .enter().append("path").attr("d", path).attr("class", "frame")
+    
+    
+// ***** Other cartographical elements *****
+      
+    // Main title
+    var maptitle ="WEALTH in EUROPE";
+    var posx = 10; var posy = 45;
+    layout.append("text").text(maptitle)
+        .attr("x", posx).attr("y", posy)
+        .style({"font-size":"35px", "fill":"#919091","font-family":"arial, tahoma, geneva, sans-serif","font-style":"bold"})
+        .attr("class", "shadow");
+    layout.append("text").text(maptitle)
+        .attr("x", posx).attr("y", posy)
+        .style({"font-size":"35px", "fill":"#ff4500","font-family":"arial, tahoma, geneva, sans-serif","font-style":"bold"})
+    
+    // Source
+    layout.append("text").text("Source: ESPON M4D, 2012 - N. Lambert, 2016")
+        .attr("x", 0+5).attr("y", height-5)
+        .style({"font-size":"12px", "fill":"#919091","font-family":"tahoma, geneva, sans-serif","font-style":"italic"});
+
+    // Logo
+    layout.append("svg:image")
+        .attr('x',773)
+        .attr('y',730)
+        .attr('width', 120)
+        .attr('height', 100)
+        .attr("xlink:href","../img/logo_riate.svg");
+
+// ***** Legend *****  
+    
+     var legtitle = "GDP per inh., 2008 (in euros)";
+    var xpos = 660;
+    var ypos = 20;
+    var boxwidth = 25;
+    var boxheight = 20;
+    var boxgap = 20;
+    
+    var legend = d3.select("svg").append("g").attr("id","legend");
+    legend.append("g").attr("id","boxes").attr("class",palette)
+    .selectAll('legendEntry')
+    .data(quantize.range().reverse())
+    .enter()
+    .append('rect')
+    .attr("x", xpos)
+    .attr("y", function(d, i) {
+       return i * boxgap + ypos + boxgap*2;
+    })
+   .attr("width", boxwidth)
+   .attr("height", boxheight)
+   .attr("class", function(d){return d;});
+    
+    legend.append("g").attr("id","boxestextes")
+    .selectAll('legendEntry')
+    .data(breaks.reverse())
+    .enter()
+    .append('text')
+    .attr("x", xpos + boxwidth + boxgap/2)
+    .attr("y", function(d, i) {
+       return i * boxgap + ypos + boxgap*2;
+    })
+    .text(function(d, i) {
+       return breaks[i].toFixed(0);
+    })
+    .style({'alignment-baseline': 'middle' , 'font-size':'10'});
+        
+    legend.append("g").attr("id","legendtitle").append('text').text(legtitle).attr("x", xpos).attr("y", ypos+boxgap);    
+    
+    
+} 
+</script>   
