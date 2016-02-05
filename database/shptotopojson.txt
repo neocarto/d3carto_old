@@ -44,19 +44,19 @@ mv nuts2006.topojson ../../topojson/nuts2006.topojson
 
 # OTHER LAYERS
 
-ogr2ogr -t_srs EPSG:4326 coast_wgs84.shp coast.shp
+ogr2ogr -t_srs EPSG:4326 coast_wide_wgs84.shp coast_wide.shp
 ogr2ogr -t_srs EPSG:4326 frame_malta_wgs84.shp frame_malta.shp
-ogr2ogr -t_srs EPSG:4326 remote_area_background_wgs84.shp remote_area_background.shp
+ogr2ogr -t_srs EPSG:4326 remote_area_background_wide_wgs84.shp remote_area_background_wide.shp
 ogr2ogr -t_srs EPSG:4326 cyprus_north_part_wgs84.shp cyprus_north_part.shp
 ogr2ogr -t_srs EPSG:4326 background_countries_wgs84.shp background_countries.shp
-ogr2ogr -t_srs EPSG:4326 remote_territories_wgs84.shp remote_territories.shp
+ogr2ogr -t_srs EPSG:4326 remote_territories_wide_wgs84.shp remote_territories_wide.shp
 
-ogr2ogr -f GeoJSON coasts.json coast_wgs84.shp
+ogr2ogr -f GeoJSON coasts.json coast_wide_wgs84.shp
 ogr2ogr -f GeoJSON framemalta.json frame_malta_wgs84.shp
-ogr2ogr -f GeoJSON frameremote.json remote_area_background_wgs84.shp
+ogr2ogr -f GeoJSON frameremote.json remote_area_background_wide_wgs84.shp
 ogr2ogr -f GeoJSON cyprusnorth.json cyprus_north_part_wgs84.shp
 ogr2ogr -f GeoJSON countries.json background_countries_wgs84.shp
-ogr2ogr -f GeoJSON remoteterritories.json remote_territories_wgs84.shp
+ogr2ogr -f GeoJSON remoteterritories.json remote_territories_wide_wgs84.shp
 
 topojson -o layers.topojson -- coasts.json framemalta.json frameremote.json cyprusnorth.json countries.json remoteterritories.json
 
