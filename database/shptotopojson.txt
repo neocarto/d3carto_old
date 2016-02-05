@@ -1,37 +1,68 @@
-# CONVERSION SHP TO TOPOJSON
-SOURCE : http://www.ums-riate.fr/Webriate/?page_id=153
+# ************************
+# DATA SOURCES 
+# ************************
 
+CC: UMS RIATE, 2016
+SOURCE: http://www.ums-riate.fr/Webriate/?page_id=153
 
-# BUILD NUTS 2006
+# ************************
+CONVERSION SHP TO TOPOJSON
+# ************************
 
-ogr2ogr -f GeoJSON -where "level0 = 1" nuts0.json GEOM_EU34_NUTS2006_wgs84.shp
-ogr2ogr -f GeoJSON -where "level1 = 1" nuts1.json GEOM_EU34_NUTS2006_wgs84.shp
-ogr2ogr -f GeoJSON -where "level2 = 1" nuts2.json GEOM_EU34_NUTS2006_wgs84.shp
-ogr2ogr -f GeoJSON -where "level3 = 1" nuts3.json GEOM_EU34_NUTS2006_wgs84.shp
-topojson -o nuts2006.topojson --id-property ID --properties name=name -- nuts0.json nuts1.json nuts2.json nuts3.json
-rm nuts0.json nuts1.json nuts2.json nuts3.json
+# BUILD NUTS 2013
+
+ogr2ogr -t_srs EPSG:4326 GEOM_EU34_NUTS2013_wgs84.shp GEOM_EU34_NUTS2013.shp
+ogr2ogr -f GeoJSON -where "level0 = 1" nuts0.json GEOM_EU34_NUTS2013_wgs84.shp
+ogr2ogr -f GeoJSON -where "level1 = 1" nuts1.json GEOM_EU34_NUTS2013_wgs84.shp
+ogr2ogr -f GeoJSON -where "level2 = 1" nuts2.json GEOM_EU34_NUTS2013_wgs84.shp
+ogr2ogr -f GeoJSON -where "level3 = 1" nuts3.json GEOM_EU34_NUTS2013_wgs84.shp
+topojson -o nuts2013.topojson --id-property ID --properties name=name -- nuts0.json nuts1.json nuts2.json nuts3.json
+rm nuts0.json nuts1.json nuts2.json nuts3.json GEOM_EU34_NUTS2013_wgs84.*
+mv nuts2013.topojson ../../topojson/nuts2013.topojson
 
 # BUILD NUTS 2010
 
+ogr2ogr -t_srs EPSG:4326 GEOM_EU34_NUTS2010_wgs84.shp GEOM_EU34_NUTS2010.shp
 ogr2ogr -f GeoJSON -where "level0 = 1" nuts0.json GEOM_EU34_NUTS2010_wgs84.shp
 ogr2ogr -f GeoJSON -where "level1 = 1" nuts1.json GEOM_EU34_NUTS2010_wgs84.shp
 ogr2ogr -f GeoJSON -where "level2 = 1" nuts2.json GEOM_EU34_NUTS2010_wgs84.shp
 ogr2ogr -f GeoJSON -where "level3 = 1" nuts3.json GEOM_EU34_NUTS2010_wgs84.shp
 topojson -o nuts2010.topojson --id-property ID --properties name=name -- nuts0.json nuts1.json nuts2.json nuts3.json
-rm nuts0.json nuts1.json nuts2.json nuts3.json
+rm nuts0.json nuts1.json nuts2.json nuts3.json GEOM_EU34_NUTS2010_wgs84.*
+mv nuts2010.topojson ../../topojson/nuts2010.topojson
 
-# BUILD OTHER LAYERS FOR LAYOUT
+# BUILD NUTS 2006
 
-ogr2ogr -f GeoJSON coasts.json coasts_wgs84.shp
-ogr2ogr -f GeoJSON borders.json borders_wgs84.shp
+ogr2ogr -t_srs EPSG:4326 GEOM_EU34_NUTS2006_wgs84.shp GEOM_EU34_NUTS2006.shp
+ogr2ogr -f GeoJSON -where "level0 = 1" nuts0.json GEOM_EU34_NUTS2006_wgs84.shp
+ogr2ogr -f GeoJSON -where "level1 = 1" nuts1.json GEOM_EU34_NUTS2006_wgs84.shp
+ogr2ogr -f GeoJSON -where "level2 = 1" nuts2.json GEOM_EU34_NUTS2006_wgs84.shp
+ogr2ogr -f GeoJSON -where "level3 = 1" nuts3.json GEOM_EU34_NUTS2006_wgs84.shp
+topojson -o nuts2006.topojson --id-property ID --properties name=name -- nuts0.json nuts1.json nuts2.json nuts3.json
+rm nuts0.json nuts1.json nuts2.json nuts3.json GEOM_EU34_NUTS2006_wgs84.*
+mv nuts2006.topojson ../../topojson/nuts2006.topojson
+
+# OTHER LAYERS
+
+ogr2ogr -t_srs EPSG:4326 coast_wgs84.shp coast.shp
+ogr2ogr -t_srs EPSG:4326 frame_malta_wgs84.shp frame_malta.shp
+ogr2ogr -t_srs EPSG:4326 remote_area_background_wgs84.shp remote_area_background.shp
+ogr2ogr -t_srs EPSG:4326 cyprus_north_part_wgs84.shp cyprus_north_part.shp
+ogr2ogr -t_srs EPSG:4326 background_countries_wgs84.shp background_countries.shp
+ogr2ogr -t_srs EPSG:4326 remote_territories_wgs84.shp remote_territories.shp
+
+ogr2ogr -f GeoJSON coasts.json coast_wgs84.shp
 ogr2ogr -f GeoJSON framemalta.json frame_malta_wgs84.shp
 ogr2ogr -f GeoJSON frameremote.json remote_area_background_wgs84.shp
-ogr2ogr -f GeoJSON cyprusnorth.json cyprus_north_wgs84.shp
+ogr2ogr -f GeoJSON cyprusnorth.json cyprus_north_part_wgs84.shp
 ogr2ogr -f GeoJSON countries.json background_countries_wgs84.shp
 ogr2ogr -f GeoJSON remoteterritories.json remote_territories_wgs84.shp
-ogr2ogr -f GeoJSON world.json world_wgs84.shp
-topojson -o layers.topojson -- coasts.json borders.json framemalta.json frameremote.json cyprusnorth.json countries.json remoteterritories.json world.json
-rm coasts.json borders.json framemalta.json frameremote.json cyprusnorth.json countries.json remoteterritories.json world.json
+
+topojson -o layers.topojson -- coasts.json framemalta.json frameremote.json cyprusnorth.json countries.json remoteterritories.json
+
+rm coasts.json framemalta.json frameremote.json cyprusnorth.json countries.json remoteterritories.json *_wgs84.*
+mv layers.topojson ../../topojson/layers.topojson
+
 
 
 
