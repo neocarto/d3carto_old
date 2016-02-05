@@ -1,0 +1,218 @@
+<script src="../js/d3.v3.min.js"></script>
+<script src="../js/topojson.v1.min.js"></script>
+<script src="../js/queue.v1.min.js"></script>
+<script src="../js/geostats.min.js"></script>
+<script src="../js/tooltip.js"></script>
+<link href="../css/style.css" rel="stylesheet" type="text/css" >  
+
+<style> 
+	.graticule {fill:none ; stroke: #777; stroke-width: 1px;  stroke-opacity: .5; stroke-dasharray: 5 }
+	.countries { fill: #e5dfc7 ; stroke-width: 0.4px; stroke : #ffffff}
+	.frame { fill: none; stroke-width: 0.5px; stroke : #383838}
+	.background { fill: #e5ebf7; stroke : none}
+	.coasts { stroke-width: 1.3px; stroke : #6976ba ; fill : none}
+	.nuts { stroke : #e7e8e3 ; stroke-width: 0.5px; stroke-linecap: round ; fill: #e5cebb;  }
+    .squares {fill : url(#radial-gradient2); stroke-width: 1.3px; stroke : #ffffff ; }
+	text.shadow {stroke: white;stroke-width: 3.5px;opacity: 0.7;}
+</style>
+
+<body>
+	<div class="note" id ="note">
+	All sources are available on <a href ="https://github.com/neocarto/d3carto" target="_blank">Github</a>. 
+	Go to the <a href="../index.php">Gallery</a>. 
+	<span class="small">CC (BY) N. Lambert (<a href ="http://neocarto.hypotheses.org/" target ="_blank">neocarto</a>).</span> 
+	</div>
+
+	<div id ="title"><ul><li>
+	A proportionnal squares map with D3.js
+	</li></ul></div>
+    
+	<div id ="abstract">
+	This example shows how to design an interactive map with proportionnal squares with D3.
+	</div>
+    
+	<div id = "map"></div>
+</body>
+
+
+<script>
+    
+// ***** Configuration of the map *****
+    
+ var width = 900, height = 798;
+ var stockById = d3.map();
+
+  var svg = d3.select("#map").append("svg")
+      .attr("width", width)
+      .attr("height", height)
+      .attr("class","grad");
+    
+var defs = svg.append("defs");
+var radialGradient = defs.append("radialGradient");
+radialGradient.attr("id", "radial-gradient");
+radialGradient.append("stop").attr("offset", "50%").attr("stop-color", "#f3f6fa");
+radialGradient.append("stop").attr("offset", "100%").attr("stop-color", "#d3e0fa");  
+
+var radialGradient2 = defs.append("radialGradient");
+radialGradient2.attr("id", "radial-gradient2");
+radialGradient2.append("stop").attr("offset", "20%").attr("stop-color", "#ef5a5a");
+radialGradient2.append("stop").attr("offset", "100%").attr("stop-color", "#d10303");      
+
+    
+
+var projection = d3.geo.azimuthalEqualArea()
+    .rotate([-10,-52])
+    .scale(1209)
+    .translate([327, 424]);
+ 
+    
+var path = d3.geo.path()
+    .projection(projection);
+    
+var graticule = d3.geo.graticule();    
+
+    
+// ***** Structure of the SVG document *****
+    
+var bottomlayer = svg.append("g").attr("id","bottomlayer");
+var dynamiclayer = svg.append("g").attr("id","dynamiclayer");
+var toplayer = svg.append("g").attr("id","toplayer");
+var layout = svg.append("g").attr("id","layout");
+  
+// Files to load    
+    queue()
+    .defer(d3.json, "../database/geom/topojson/layers.topojson")
+    .defer(d3.json, "../database/geom/topojson/nuts2006.topojson")
+    .defer(d3.tsv, "../database/data/nuts0_2006.tsv", function(d) { stockById.set(d.id, +d.pop2008);  })
+    .await(ready);
+
+function ready(error, layers, nuts) {
+  if (error) throw error;
+
+    
+// ***** Bottom layers *****
+    
+    bottomlayer.append("rect")
+        .style("fill", "url(#radial-gradient)")
+        .attr("width", "100%")
+        .attr("height", "100%")
+    
+    bottomlayer.append("path").datum(graticule)
+        .attr("class", "graticule")
+        .attr("d", path);
+    
+    // Frames
+    bottomlayer.selectAll(".subunit")
+        .data(topojson.feature(layers, layers.objects.framemalta).features)
+        .enter().append("path").attr("d", path).attr("class", "background")
+    bottomlayer.selectAll(".subunit")
+        .data(topojson.feature(layers, layers.objects.frameremote).features)
+        .enter().append("path").attr("d", path).attr("class", "background")
+    
+    // Countries
+    bottomlayer.selectAll(".subunit")
+        .data(topojson.feature(layers, layers.objects.countries).features)
+        .enter().append("path").attr("d", path).attr("class", "countries")
+    bottomlayer.selectAll(".subunit")
+        .data(topojson.feature(layers, layers.objects.remoteterritories).features)
+        .enter().append("path").attr("d", path).attr("class", "countries")
+    
+    
+    bottomlayer.attr("class", " nuts")
+        .selectAll(".subunit")
+        .data(topojson.feature(nuts, nuts.objects.nuts0).features)
+        .enter().append("path")
+        .attr("d", path)  
+    
+        // coastline
+    bottomlayer.selectAll(".subunit")
+        .data(topojson.feature(layers, layers.objects.coasts).features)
+        .enter().append("path").attr("d", path).attr("class", "coasts")
+    
+// ***** Prop symbols layer *****
+
+    var size=0.012;
+    
+   dynamiclayer
+        .attr("id", "centroides").attr("class", "squares")
+        .selectAll("rect")
+        .data(topojson.feature(nuts, nuts.objects.nuts0).features)
+        .enter()
+	.append("rect")
+        //.attr("r", 2)
+        .attr("x", function(d) { return path.centroid(d)[0]-Math.sqrt(stockById.get(d.id))*size/2; })
+        .attr("y", function(d) { return path.centroid(d)[1]-Math.sqrt(stockById.get(d.id))*size/2; })
+	.attr("width", function(d) { return Math.sqrt(stockById.get(d.id))*size;})
+	.attr("height", function(d) { return Math.sqrt(stockById.get(d.id))*size;})
+	.sort(function(a, b) { return stockById.get(b.id) - stockById.get(a.id); })
+    .on('mouseover', function(d){
+        d3.select(this).style({fill: "#ffc914"}); 
+        d3.select("#dyntext").text(d3.round(stockById.get(d.id)/1000000, 2)+ " million inh.");
+        d3.select("#dyntext2").text(d.properties.name);
+        })
+    .on('mouseout', function(d){
+        d3.select(this).transition().duration(250).style("fill", function(d) {d.class});
+        d3.select("#dyntext").text("");
+        d3.select("#dyntext2").text("");
+   
+        });
+
+    
+// ***** Top layers *****
+    
+
+    
+    
+    
+// ***** Other cartographical elements *****
+      
+    // Main title
+    var maptitle ="Total population, 2008";
+    var posx = 10; var posy = 45;
+    layout.append("text").text(maptitle)
+        .attr("x", posx).attr("y", posy)
+        .style({"font-size":"35px", "fill":"#919091","font-family":"arial, tahoma, geneva, sans-serif","font-style":"bold"})
+        .attr("class", "shadow");
+    layout.append("text").text(maptitle)
+        .attr("x", posx).attr("y", posy)
+        .style({"font-size":"35px", "fill":"#4f537e","font-family":"arial, tahoma, geneva, sans-serif","font-style":"bold"})
+    
+    // Source
+    layout.append("text").text("Source: ESPON M4D, 2012 - N. Lambert, 2016")
+        .attr("x", 0+5).attr("y", height-5)
+        .style({"font-size":"12px", "fill":"#919091","font-family":"tahoma, geneva, sans-serif","font-style":"italic"});
+
+    // Logo
+    layout.append("svg:image")
+        .attr('x',773)
+        .attr('y',730)
+        .attr('width', 120)
+        .attr('height', 100)
+        .attr("xlink:href","../img/logo_riate.svg");
+    
+    // Labels
+        toplayer.selectAll("circle")
+        .data(topojson.feature(nuts, nuts.objects.nuts0).features)    
+        .enter().append("text")
+        .attr("transform", function(d) { return "translate(" + path.centroid(d) + ")"; })
+        .text(function(d) { return d.properties.name.substring(0,3).toUpperCase(); })
+        .attr("text-anchor", "middle")
+        .attr("alignment-baseline", "middle")
+        .style({"font-size":"12px", "fill":"#4d0d0d" }) ;
+    
+    
+    // Textbox
+     var posx = 600; var posy = 180;
+    layout.append("text").text("xx")
+        .attr("id", "dyntext")
+        .attr("x", posx).attr("y", posy)
+        .style({"font-size":"16px", "fill":"#4f537e","font-family":"arial, tahoma, geneva, sans-serif","font-style":"bold"})
+        var posx = 600; var posy = 150;
+    layout.append("text").text("xx")
+        .attr("id", "dyntext2")
+        .attr("x", posx).attr("y", posy)
+        .style({"font-size":"25px", "fill":"#4f537e","font-family":"arial, tahoma, geneva, sans-serif","font-style":"bold"}) 
+    
+    
+} 
+</script>   
