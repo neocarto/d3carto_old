@@ -6,6 +6,7 @@ $thumb[2] ="map_choropleth_interactiv" ; $descr[2]="An interactive chorpleth<br/
 $thumb[3] ="map_propsymbols" ; $descr[3]="A bubble map<br/>of Europe";
 $thumb[4] ="map_propsymbols_squares" ; $descr[4]="A map of Europe with<br/>proportionnal squares";
 $thumb[5] ="map_propsymbolschoro" ; $descr[5]="A map with colored<br/>proportionnal squares";
+$thumb[6] ="map_parametrable" ; $descr[6]="Change dynamically<br/> map parameters";
 
 
 ?>

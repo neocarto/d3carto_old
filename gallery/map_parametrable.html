@@ -1,0 +1,144 @@
+<script src="../js/d3.v3.min.js"></script>
+<script src="../js/topojson.v1.min.js"></script>
+<script src="../js/queue.v1.min.js"></script>
+<link href="../css/style.css" rel="stylesheet" type="text/css" >  
+
+<style> 
+	.graticule {fill:none ; stroke: #777; stroke-width: 1px;  stroke-opacity: .5; stroke-dasharray: 5 }
+	.frame { fill: #ffffff; stroke-width: 1px; stroke : #383838}
+	.nuts { stroke : #e7e8e3 ; stroke-width: 0.5px; stroke-linecap: round ; fill: #dbb4d5;  }
+    #menu { float: left; width: 150px;font-family:Georgia,serif; color:#41403f; font-size: 12px; margin : 10px;}
+    #map { float: left; }
+    
+
+
+</style>
+
+<body>
+	<div class="note" id ="note">
+	All sources are available on <a href ="https://github.com/neocarto/d3carto" target="_blank">Github</a>. 
+	Go to the <a href="../index.php">Gallery</a>. 
+	<span class="small">CC (BY) N. Lambert (<a href ="http://neocarto.hypotheses.org/" target ="_blank">neocarto</a>).</span> 
+	</div>
+
+	<div id ="title"><ul><li>
+	How to change parameters with a web form
+	</li></ul></div>
+    
+	<div id ="abstract">
+	This example shows how to change texts, colors and styles with a web form.
+	</div>
+    
+    <div id = "menu">
+        
+        <li>background color</li><br/><input type="color" id="form-bgcolor" value="#000000"><br/><br/>
+        <li>border color</li><br/><input type="color" id="form-bordercolor" value="#000000"><br/><br/>
+        <li>border thickness</li><br/><input type="range" min="1" max="10" id="form-borderthickness" value="1"> <br/><br/>
+        <li>Map title</li><br/><input type="text" id="form-maptitle" value="maptitle">
+    
+    </div>
+  	<div id = "map"></div>
+</body>
+
+
+<script>
+    
+// ***** Configuration of the map *****
+    
+ var width = 600, height = 532;
+ var rateById = d3.map();
+
+  var svg = d3.select("#map").append("svg")
+      .attr("width", width)
+      .attr("height", height)
+      .attr("class","grad");
+
+
+var projection = d3.geo.azimuthalEqualArea()
+    .rotate([-10,-52])
+    .scale(700)
+    .translate([240, 290]);
+ 
+    
+var path = d3.geo.path()
+    .projection(projection);
+
+var graticule = d3.geo.graticule();    
+
+// ***** Structure of the SVG document *****
+    
+var bottomlayer = svg.append("g").attr("id","bottomlayer");
+var dynamiclayer = svg.append("g").attr("id","dynamiclayer");
+var toplayer = svg.append("g").attr("id","toplayer");
+  
+// Files to load    
+    queue()
+    .defer(d3.json, "../database/geom/topojson/layers.topojson")
+    .defer(d3.json, "../database/geom/topojson/nuts2010.topojson")
+    .await(ready);
+
+function ready(error, layers, nuts) {
+  if (error) throw error;
+    
+// ***** Bottom layers *****
+    
+    // background
+    bottomlayer.append("rect")
+        .attr("class", "frame")
+        .attr("width", "100%")
+        .attr("height", "100%");
+   
+    // frames
+    bottomlayer.selectAll(".subunit")
+    .data(topojson.feature(layers, layers.objects.framemalta).features)
+    .enter().append("path").attr("d", path).attr("class", "frame")
+    bottomlayer.selectAll(".subunit")
+    .data(topojson.feature(layers, layers.objects.frameremote).features)
+    .enter().append("path").attr("d", path).attr("class", "frame")
+    
+    // graticule
+    bottomlayer.append("path").datum(graticule)
+        .attr("class", "graticule")
+        .attr("d", path);
+
+
+    
+// ***** Dynamic Layers (for thematic representation if needed) *****
+
+    dynamiclayer.attr("class", "nuts")
+        .selectAll(".subunit")
+        .data(topojson.feature(nuts, nuts.objects.nuts1).features)
+        .enter().append("path")
+        .attr("d", path)  
+    
+    
+// ***** Top Layers *****
+     
+    // national borders
+    toplayer
+	   .datum(topojson.mesh(nuts, nuts.objects.nuts0, function(a, b) {return a !== b ;}))
+	   .append("path")
+       .attr("class","borders")
+	   .attr("d", path)
+	   .attr("fill", "none")
+	   .attr('stroke-width', 1)
+       .attr('stroke-linecap', "round") 
+	   .attr('stroke', '#b18db7');
+    
+    // map title
+    var posx = 10; var posy = 45;
+    toplayer.append("text").text("maptitle")
+        .attr("class","maptitle")
+        .attr("x", posx).attr("y", posy)
+        .style({"font-size":"35px", "fill":"#919091","font-family":"arial, tahoma, geneva, sans-serif","font-style":"bold"})
+
+// ***** MENU INTERACTIVITY *****
+
+d3.select("#form-bgcolor").on("input", function() { d3.selectAll("#dynamiclayer").style("fill", this.value); });
+d3.select("#form-bordercolor").on("input", function() { d3.selectAll(".borders").style("stroke", this.value); });    
+d3.select("#form-borderthickness").on("input", function() { d3.selectAll(".borders").style("stroke-width", this.value); }); 
+d3.select("#form-maptitle").on("input", function() { d3.selectAll(".maptitle").text(this.value); }); 
+    
+    
+} 
+</script>   
