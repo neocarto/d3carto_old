@@ -6,7 +6,8 @@
 <style> 
 	.graticule {fill:none ; stroke: #777; stroke-width: 1px;  stroke-opacity: .5; stroke-dasharray: 5 }
 	.frame { fill: #ffffff; stroke-width: 1px; stroke : #383838}
-	.nuts { stroke : #e7e8e3 ; stroke-width: 0.5px; stroke-linecap: round ; fill: #dbb4d5;  }
+	.nuts { stroke : #ffffff ; stroke-width: 0.5px; stroke-linecap: round ; fill: #d6cac2;  }
+    #bubble { stroke : #ffffff ; stroke-width: 1.2px; stroke-linecap: round ; fill: #c30505;  }
     #menu { float: left; width: 150px;font-family:Georgia,serif; color:#41403f; font-size: 12px; margin : 10px;}
     #map { float: left; }
     
@@ -22,19 +23,16 @@
 	</div>
 
 	<div id ="title"><ul><li>
-	How to change parameters with a web form
+	How to change dynamically circle sizes
 	</li></ul></div>
     
 	<div id ="abstract">
-	This example shows how to change texts, colors and styles with a web form.
+	This example shows how to change map parameters with a web form.
 	</div>
     
     <div id = "menu">
         
-        <li>background color</li><br/><input type="color" id="form-bgcolor" value="#000000"><br/><br/>
-        <li>border color</li><br/><input type="color" id="form-bordercolor" value="#000000"><br/><br/>
-        <li>border thickness</li><br/><input type="range" min="1" max="10" id="form-borderthickness" value="1"> <br/><br/>
-        <li>Map title</li><br/><input type="text" id="form-maptitle" value="maptitle">
+        <li>Circle sizes</li><br/><input type="range" min="0" max="5" id="form-circlesizes" step = "0.1" value="1"> <br/><br/>
     
     </div>
   	<div id = "map"></div>
@@ -46,7 +44,7 @@
 // ***** Configuration of the map *****
     
  var width = 600, height = 532;
- var rateById = d3.map();
+ var stockById = d3.map();
 
   var svg = d3.select("#map").append("svg")
       .attr("width", width)
@@ -74,7 +72,8 @@ var toplayer = svg.append("g").attr("id","toplayer");
 // Files to load    
     queue()
     .defer(d3.json, "../database/geom/topojson/layers.topojson")
-    .defer(d3.json, "../database/geom/topojson/nuts2010.topojson")
+    .defer(d3.json, "../database/geom/topojson/nuts2006.topojson")
+    .defer(d3.tsv, "../database/data/nuts1_2006.tsv", function(d) { stockById.set(d.id, +d.pop2008);  })
     .await(ready);
 
 function ready(error, layers, nuts) {
@@ -111,33 +110,40 @@ function ready(error, layers, nuts) {
         .enter().append("path")
         .attr("d", path)  
     
+    
+    var radius = d3.scale.sqrt()
+    .domain([0, 1e6])
+    .range([0, 1.3]);
+    
+    svg.append("g")
+        .attr("id", "bubble")
+        .selectAll("circle")
+        .data(topojson.feature(nuts, nuts.objects.nuts1).features)
+        .sort(function(a, b) { return b.properties.pop2008 - a.properties.pop2008; })
+        .enter().append("circle")
+        .attr("class", "propsymbol")
+        .attr("transform", function(d) { return "translate(" + path.centroid(d) + ")"; })
+        .attr("r", function(d) { return radius(stockById.get(d.id)); });
+    
+    
+    
 // ***** Top Layers *****
-     
-    // national borders
-    toplayer
-	   .datum(topojson.mesh(nuts, nuts.objects.nuts0, function(a, b) {return a !== b ;}))
-	   .append("path")
-       .attr("class","borders")
-	   .attr("d", path)
-	   .attr("fill", "none")
-	   .attr('stroke-width', 1)
-       .attr('stroke-linecap', "round") 
-	   .attr('stroke', '#b18db7');
     
     // map title
     var posx = 10; var posy = 45;
-    toplayer.append("text").text("maptitle")
+    toplayer.append("text").text("k=1")
         .attr("class","maptitle")
         .attr("x", posx).attr("y", posy)
-        .style({"font-size":"35px", "fill":"#919091","font-family":"arial, tahoma, geneva, sans-serif","font-style":"bold"})
+        .style({"font-size":"35px", "fill":"#c30505","font-family":"arial, tahoma, geneva, sans-serif","font-style":"bold"})
 
 // ***** MENU INTERACTIVITY *****
 
-d3.select("#form-bgcolor").on("input", function() { d3.selectAll("#dynamiclayer").style("fill", this.value); });
-d3.select("#form-bordercolor").on("input", function() { d3.selectAll(".borders").style("stroke", this.value); });    
-d3.select("#form-borderthickness").on("input", function() { d3.selectAll(".borders").style("stroke-width", this.value); }); 
-d3.select("#form-maptitle").on("input", function() { d3.selectAll(".maptitle").text(this.value); }); 
-    
+d3.select("#form-circlesizes").on("input", function() {
+    var k = this.value;
+    d3.selectAll(".propsymbol").attr("r", function(d) { return radius(stockById.get(d.id))*k; });
+    d3.selectAll(".maptitle").text("k="+this.value); 
+}); 
+   
     
 } 
 </script>   

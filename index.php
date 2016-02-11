@@ -7,8 +7,7 @@ $thumb[3] ="map_propsymbols" ; $descr[3]="A bubble map<br/>of Europe";
 $thumb[4] ="map_propsymbols_squares" ; $descr[4]="A map of Europe with<br/>proportionnal squares";
 $thumb[5] ="map_propsymbolschoro" ; $descr[5]="A map with colored<br/>proportionnal squares";
 $thumb[6] ="map_parametrable" ; $descr[6]="Change dynamically<br/> map parameters";
-
-
+$thumb[7] ="map_parametrable_circles" ; $descr[7]="Change dynamically<br/> circle sizes";
 ?>
 
 
