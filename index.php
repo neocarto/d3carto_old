@@ -8,6 +8,9 @@ $thumb[4] ="map_propsymbols_squares" ; $descr[4]="A map of Europe with<br/>propo
 $thumb[5] ="map_propsymbolschoro" ; $descr[5]="A map with colored<br/>proportionnal squares";
 $thumb[6] ="map_parametrable" ; $descr[6]="Change dynamically<br/> map parameters";
 $thumb[7] ="map_parametrable_circles" ; $descr[7]="Change dynamically<br/> circle sizes";
+$thumb[8] ="map_hidedisplay" ; $descr[8]="Change dynamically<br/>Opacity and visibility";
+
+
 ?>
 
 

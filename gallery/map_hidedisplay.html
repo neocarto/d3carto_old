@@ -1,0 +1,155 @@
+<script src="../js/d3.v3.min.js"></script>
+<script src="../js/topojson.v1.min.js"></script>
+<script src="../js/queue.v1.min.js"></script>
+<link href="../css/style.css" rel="stylesheet" type="text/css" >  
+
+<style> 
+	#graticulelayer {fill:none ; stroke: #777; stroke-width: 1.5px;  stroke-opacity: .5; stroke-dasharray: 5 }
+	#frameslayer { fill: #ffffff; stroke-width: 0.5px; stroke : #383838}
+	#regionslayer { stroke : #e7e8e3 ; stroke-width: 0.5px; stroke-linecap: round ; fill: #a0c4db;  }
+    #countrieslayer { stroke : #ffffff ; stroke-width: 0.5px; stroke-linecap: round ; fill: #cddae3;  }
+    #borderslayer { stroke : #143964 ; stroke-width: 1px; stroke-linecap: round ; fill: none;  }
+    #menu { float: left; width: 150px;font-family:Georgia,serif; color:#41403f; font-size: 12px; margin : 10px;}
+    #map { float: left; }
+    
+
+
+</style>
+
+<body>
+	<div class="note" id ="note">
+	All sources are available on <a href ="https://github.com/neocarto/d3carto" target="_blank">Github</a>. 
+	Go to the <a href="../index.php">Gallery</a>. 
+	<span class="small">CC (BY) N. Lambert (<a href ="http://neocarto.hypotheses.org/" target ="_blank">neocarto</a>).</span> 
+	</div>
+
+	<div id ="title"><ul><li>
+	Opacity and visibility
+	</li></ul></div>
+    
+	<div id ="abstract">
+	This example shows how to deal with the opacity and visibilty of the objets
+	</div>
+    
+    <div id = "menu">
+        <h2>Visibility</h2> 
+        <input type="checkbox" id="form-graticule" checked><label for="form-graticule">graticule</label>
+        <br/> 
+        <input type="checkbox" id="form-frames" checked><label for="form-frames">frames</label>
+        <br/> 
+         <input type="checkbox" id="form-countries" checked><label for="form-countries">neighborhood</label>
+        <br/> 
+        <input type="checkbox" id="form-borders" checked><label for="form-borders">borders</label>
+        <br/> 
+         <input type="checkbox" id="form-regions" checked><label for="form-regions">regions</label>
+        <br/>
+        
+        <h2>Opacity</h2> 
+        graticule<input type="range" min="0" max="1" id="form-graticule-alpha" step = "0.1" value="1"> 
+        <br/> 
+        frames<input type="range" min="0" max="1" id="form-frames-alpha" step = "0.1" value="1"> 
+        <br/> 
+        neighborhood<input type="range" min="0" max="1" id="form-countries-alpha" step = "0.1" value="1"> 
+        <br/> 
+        borders<input type="range" min="0" max="1" id="form-borders-alpha" step = "0.1" value="1"> 
+        <br/> 
+        regions<input type="range" min="0" max="1" id="form-regions-alpha" step = "0.1" value="1"> 
+    
+
+        
+        
+    </div>
+  	<div id = "map"></div>
+</body>
+
+
+<script>
+    
+// ***** Configuration of the map *****
+    
+ var width = 600, height = 532;
+ var rateById = d3.map();
+
+  var svg = d3.select("#map").append("svg")
+      .attr("width", width)
+      .attr("height", height)
+      .attr("class","grad");
+
+
+var projection = d3.geo.azimuthalEqualArea()
+    .rotate([-10,-52])
+    .scale(820)
+    .translate([215, 285]);
+ 
+    
+var path = d3.geo.path()
+    .projection(projection);
+
+var graticule = d3.geo.graticule();    
+
+// ***** Structure of the SVG document *****
+    
+var graticulelayer = svg.append("g").attr("id","graticulelayer");
+var frameslayer = svg.append("g").attr("id","frameslayer");
+var countrieslayer = svg.append("g").attr("id","countrieslayer");
+var regionslayer = svg.append("g").attr("id","regionslayer");
+var borderslayer = svg.append("g").attr("id","borderslayer");
+    
+
+// Files to load    
+    queue()
+    .defer(d3.json, "../database/geom/topojson/layers.topojson")
+    .defer(d3.json, "../database/geom/topojson/nuts2010.topojson")
+    .await(ready);
+
+function ready(error, layers, nuts) {
+  if (error) throw error;
+    
+graticulelayer.append("path").datum(graticule)
+    .attr("d", path);
+    
+frameslayer.selectAll(".subunit")
+    .data(topojson.feature(layers, layers.objects.framemalta).features)
+    .enter().append("path").attr("d", path);
+
+frameslayer.selectAll(".subunit")
+    .data(topojson.feature(layers, layers.objects.frameremote).features)
+    .enter().append("path").attr("d", path);
+    
+countrieslayer.selectAll(".subunit")
+    .data(topojson.feature(layers, layers.objects.countries).features)
+    .enter().append("path").attr("d", path)
+countrieslayer.selectAll(".subunit")
+    .data(topojson.feature(layers, layers.objects.remoteterritories).features)
+    .enter().append("path").attr("d", path)
+
+
+regionslayer.attr("class", "nuts")
+    .selectAll(".subunit")
+    .data(topojson.feature(nuts, nuts.objects.nuts1).features)
+    .enter().append("path")
+    .attr("d", path);  
+
+borderslayer
+	.datum(topojson.mesh(nuts, nuts.objects.nuts0, function(a, b) {return a !== b ;}))
+	.append("path")
+	.attr("d", path);
+    
+
+// ***** MENU INTERACTIVITY *****
+
+// opacity   
+d3.select("#form-graticule-alpha").on("input", function() { d3.selectAll("#graticulelayer").style("opacity", this.value); });
+d3.select("#form-frames-alpha").on("input", function() { d3.selectAll("#frameslayer").style("opacity", this.value); });
+d3.select("#form-countries-alpha").on("input", function() { d3.selectAll("#countrieslayer").style("opacity", this.value); });
+d3.select("#form-borders-alpha").on("input", function() { d3.selectAll("#borderslayer").style("opacity", this.value); });
+d3.select("#form-regions-alpha").on("input", function() { d3.selectAll("#regionslayer").style("opacity", this.value); });
+
+// visibility   
+d3.select("#form-frames").on("change", function() { d3.selectAll("#frameslayer").style("visibility", this.checked ? "visible" : "hidden"); });
+d3.select("#form-graticule").on("change", function() { d3.selectAll("#graticulelayer").style("visibility", this.checked ? "visible" : "hidden"); });
+d3.select("#form-borders").on("change", function() { d3.selectAll("#borderslayer").style("visibility", this.checked ? "visible" : "hidden"); });
+d3.select("#form-regions").on("change", function() { d3.selectAll("#regionslayer").style("visibility", this.checked ? "visible" : "hidden"); });
+d3.select("#form-countries").on("change", function() { d3.selectAll("#countrieslayer").style("visibility", this.checked ? "visible" : "hidden"); });
+} 
+</script>   
