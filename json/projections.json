@@ -1,0 +1,7 @@
+[
+	{"name": "azimuthalEqualArea", "projection":  "d3.geo.azimuthalEqualArea().rotate([-10,-52]).scale(700).translate([240, 290])"},  
+	{"name": "orthographic", "projection":  "d3.geo.orthographic().scale(975).translate([150, 1000])"}
+ ]
+
+    
+

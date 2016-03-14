@@ -63,8 +63,15 @@ topojson -o layers.topojson -- coasts.json framemalta.json frameremote.json cypr
 rm coasts.json framemalta.json frameremote.json cyprusnorth.json countries.json remoteterritories.json *_wgs84.*
 mv layers.topojson ../../topojson/layers.topojson
 
+# TEST
+topojson --width 960 --height 800
 
-
+ogr2ogr -f GeoJSON -where "level0 = 1" nuts0.json GEOM_EU34_NUTS2013.shp
+ogr2ogr -f GeoJSON -where "level1 = 1" nuts1.json GEOM_EU34_NUTS2013.shp
+ogr2ogr -f GeoJSON -where "level2 = 1" nuts2.json GEOM_EU34_NUTS2013.shp
+ogr2ogr -f GeoJSON -where "level3 = 1" nuts3.json GEOM_EU34_NUTS2013.shp
+topojson -o nuts2013.topojson --width 1000 --height 1000 --id-property ID --properties name=name -- nuts0.json nuts1.json nuts2.json nuts3.json
+rm nuts0.json nuts1.json nuts2.json nuts3.json
 
 
 

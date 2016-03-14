@@ -9,7 +9,7 @@ $thumb[5] ="map_propsymbolschoro" ; $descr[5]="A map with colored<br/>proportion
 $thumb[6] ="map_parametrable" ; $descr[6]="Change dynamically<br/> map parameters";
 $thumb[7] ="map_parametrable_circles" ; $descr[7]="Change dynamically<br/> circle sizes";
 $thumb[8] ="map_hidedisplay" ; $descr[8]="Change dynamically<br/>Opacity and visibility";
-
+$thumb[9] ="map_projs" ; $descr[9]="Projections,<br/>zooms, scales, ...";
 
 ?>
 

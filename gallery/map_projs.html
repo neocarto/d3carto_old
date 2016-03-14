@@ -1,0 +1,130 @@
+
+
+<script src="../js/d3.v3.min.js"></script>
+<script src="../js/topojson.v1.min.js"></script>
+<link href="../css/style.css" rel="stylesheet" type="text/css" >  
+
+<style> 
+    #countrieslayer { stroke : #ffffff ; stroke-width: 0.5px; stroke-linecap: round ; fill: #6f9fa3;  }
+    #menu { float: left; width: 150px;font-family:Georgia,serif; color:#41403f; font-size: 12px; margin : 10px;}
+    #map { float: left; border-style: solid;}
+    .graticule {fill:none ; stroke: #777; stroke-width: 1px;  stroke-opacity: .5; stroke-dasharray: 5 }
+</style>
+
+<body>
+	<div class="note" id ="note">
+	All sources are available on <a href ="https://github.com/neocarto/d3carto" target="_blank">Github</a>. 
+	Go to the <a href="../index.php">Gallery</a>. 
+	<span class="small">CC (BY) N. Lambert (<a href ="http://neocarto.hypotheses.org/" target ="_blank">neocarto</a>).</span> 
+	</div>
+
+	<div id ="title"><ul><li>Projections, zooms, ... (draft)</li></ul></div>
+	<div id ="abstract">This example shows how to deal with map projections, scales, rotation, ...</div>
+    <div id = "menu"></div>
+  	<div id = "map"></div>
+</body>
+
+
+<script>
+ 
+// voir : http://bl.ocks.org/mbostock/3711652 
+// voir : http://stackoverflow.com/questions/14492284/center-a-map-in-d3-given-a-geojson-object    
+    
+    
+
+    var w = 600 ;
+    var h = 532;  
+
+    var proj = d3.geo.azimuthalEqualArea().rotate([-10,-52]).scale(700).translate([240, 290]);
+        
+
+    var path = d3.geo.path().projection(proj);
+    var t = proj.translate(); 
+    var s = proj.scale() ;
+    
+    var map = d3.select("#map").append("svg:svg")
+        .attr("width", w)
+        .attr("height", h)
+        .call(d3.behavior.zoom().on("zoom", redraw));
+    
+    var countries = map.append("g").attr("id","countrieslayer");
+
+    d3.json("../database/geom/topojson/layers.topojson", function ready(error, json) {
+
+    countries.selectAll('path').data(topojson.feature(json, json.objects.countries).features).enter().append('path');
+     map.selectAll("path").attr("d", path);  
+        //console.log(json);
+        //console.log(d3.geo.bounds(path));
+        
+
+        
+});
+        
+
+
+    function redraw() {
+      sc = d3.event.scale;
+      tr  = d3.event.translate;
+      var tx = t[0] * d3.event.scale + d3.event.translate[0];
+      var ty = t[1] * d3.event.scale + d3.event.translate[1];
+      proj.translate([tx, ty]);
+      proj.scale(s * d3.event.scale);
+      map.selectAll("path").attr("d", path);
+      return sc;
+      return tr;
+
+    }
+
+    
+    function reproj() {
+      
+    if(typeof sc == 'undefined'){sc = 1;}
+    if(typeof tr == 'undefined'){tr = [0,0];}
+    var tx = t[0] * sc + tr[0];
+      var ty = t[1] * sc + tr[1];
+      proj.translate([tx, ty]);
+      proj.scale(s * sc);
+      map.selectAll("path").attr("d", path);
+    
+    }
+    
+
+
+    
+// MENU
+var menu =  d3.select("#menu");
+menu.append("div").html("Rotate")
+menu.append("input").attr("type", "range").attr("id","form_rotate").attr("value",0).attr("min",0).attr("max",360).attr("step",1)
+
+var p = menu.append("select").attr("id","form_projection")
+    d3.json("../json/projections.json", function(json) {
+       json.forEach(function(d) {
+        p.append("option").text(d.name).attr("value",d.projection);
+       });  
+
+        
+        
+    });
+
+// ACTIONS
+
+d3.select("#form_rotate").on("input", function() { 
+        countries.transition()
+            .duration(10)
+            .attr("transform", "rotate(" + this.value + ","+ w / 2 +","+  h / 2 +")");
+    });
+
+    
+p.on("change", function() {
+    proj = eval(this.value);
+    path = d3.geo.path().projection(proj);
+    t = proj.translate(); // the projection's default translation
+    s = proj.scale()
+    reproj() ;
+    
+});   
+
+    
+</script>   
+
+
